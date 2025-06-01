@@ -4,7 +4,7 @@ import {
   Post,
   Body,
   Get,
-  Patch, // أضف Patch
+  Patch,
   UseGuards,
   BadRequestException,
   Request,
@@ -14,7 +14,8 @@ import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from '../user/dto/create-user.dto';
-import { UpdateProfileDto } from '../user/dto/update-user-profile.dto'; // أضف DTO
+import { UpdateProfileDto } from '../user/dto/update-user-profile.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto'; // أضف هذا
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
@@ -55,18 +56,18 @@ export class AuthController {
   async register(@Body() createUserDto: CreateUserDto) {
     return this.authService.register(createUserDto);
   }
+
   @Post('verify-register')
   async verifyRegister(
     @Body() dto: { phone: string; code: string; user: Partial<CreateUserDto> },
   ) {
     const { phone, code, user } = dto;
-
     if (!phone || !code || !user) {
       throw new BadRequestException('بيانات الطلب ناقصة');
     }
-
     return this.authService.verifyOtpAndRegister(phone, code, user);
   }
+
   @Post('verify-otp')
   async verifyOtp(
     @Body('phone') phone: string,
@@ -78,6 +79,7 @@ export class AuthController {
     }
     return this.authService.verifyOtpAndRegister(phone, otp, dto);
   }
+
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req) {
@@ -92,7 +94,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Patch('profile') // نقطة نهاية جديدة
+  @Patch('profile')
   async updateProfile(@Request() req, @Body() dto: UpdateProfileDto) {
     console.log('📥 طلب تحديث الملف الشخصي:', { userId: req.user?.sub, dto });
     if (!req.user?.sub) {
@@ -139,5 +141,13 @@ export class AuthController {
       throw new BadRequestException('الحقول المطلوبة غير مكتملة');
     }
     return this.authService.resetPassword(dto.phone, dto.code, dto.newPassword);
+  }
+
+  @Post('resend-otp') // أضف هذه النقطة
+  async resendOtp(@Body() dto: ResendOtpDto) {
+    if (!dto.phone) {
+      throw new BadRequestException('رقم الهاتف مطلوب');
+    }
+    return this.authService.resendOtp(dto);
   }
 }

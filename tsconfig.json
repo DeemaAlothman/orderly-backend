@@ -18,6 +18,7 @@
     "strictBindCallApply": false,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "types": ["node", "socket.io"] // Add socket.io to types
   }
 }

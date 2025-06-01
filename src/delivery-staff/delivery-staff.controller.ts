@@ -12,8 +12,8 @@ import { DeliveryStaffService } from './delivery-staff.service';
 import { CreateDeliveryStaffDto } from './dto/create-delivery-staff.dto';
 import { UpdateDeliveryStaffDto } from './dto/update-delivery-staff.dto';
 import { AuthService } from '../auth/auth.service';
-import { UserType } from '@prisma/client'; // Import Prisma UserType enum
-
+import { UserType } from '@prisma/client';
+import { UpdateLocationDto } from './dto/update-location.dto';
 @Controller('delivery-staff')
 export class DeliveryStaffController {
   constructor(
@@ -39,7 +39,7 @@ export class DeliveryStaffController {
       name: dto.name,
       password: dto.password,
       address: dto.address,
-      type: UserType.DELIVERY_STAFF, // Use enum value
+      type: UserType.DELIVERY_STAFF,
     });
   }
 
@@ -56,5 +56,12 @@ export class DeliveryStaffController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.deliveryStaffService.findOne(id);
+  }
+  @Post(':id/location')
+  async updateLocation(
+    @Param('id') id: string,
+    @Body() dto: UpdateLocationDto,
+  ) {
+    return this.deliveryStaffService.updateLocation(id, dto.lat, dto.long);
   }
 }

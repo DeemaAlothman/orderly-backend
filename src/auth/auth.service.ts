@@ -1,4 +1,3 @@
-// src/auth/auth.service.ts
 import {
   Injectable,
   UnauthorizedException,
@@ -13,7 +12,7 @@ import { CreateUserDto } from '../user/dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
-
+import { ResendOtpDto } from './dto/resend-otp.dto'; // أضف هذا
 @Injectable()
 export class AuthService {
   constructor(
@@ -332,5 +331,80 @@ export class AuthService {
     console.log('✅ تم تحديث حالة OTP إلى verified');
 
     return { message: 'تم إعادة تعيين كلمة المرور بنجاح' };
+  }
+  async resendOtp(dto: ResendOtpDto) {
+    if (!dto.phone) {
+      throw new BadRequestException('رقم الهاتف مطلوب');
+    }
+
+    const otpRecord = await this.prisma.otpVerification.findFirst({
+      where: { phone: dto.phone },
+      orderBy: { created_at: 'desc' },
+    });
+
+    if (!otpRecord) {
+      throw new BadRequestException('لا يوجد رمز OTP مسجل لهذا الرقم');
+    }
+
+    const currentTime = new Date();
+    const isExpired = otpRecord.expires_at < currentTime;
+    const isNotVerified = !otpRecord.verified;
+
+    if (!isExpired && isNotVerified) {
+      throw new BadRequestException('رمز OTP الحالي لا يزال صالحًا');
+    }
+
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(currentTime.getTime() + 5 * 60 * 1000);
+
+    await this.prisma.otpVerification.create({
+      data: {
+        phone: dto.phone,
+        code: newCode,
+        expires_at: expiresAt,
+        verified: false,
+      },
+    });
+
+    await this.sendOtpSms(dto.phone, newCode);
+
+    return { message: 'تم إرسال رمز OTP جديد بنجاح' };
+  }
+
+  private async sendOtpSms(phone: string, code: string) {
+    const apiUrl = process.env.OTP_SERVICE_API_URL;
+    if (!apiUrl) {
+      throw new BadRequestException('عنوان URL لخدمة OTP غير محدد');
+    }
+
+    try {
+      const response = await axios.post(
+        apiUrl,
+        {
+          phoneNumber: phone,
+          otp: code,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(process.env.OTP_SERVICE_API_KEY && {
+              Authorization: `Bearer ${process.env.OTP_SERVICE_API_KEY}`,
+            }),
+          },
+        },
+      );
+
+      console.log(
+        `تم إرسال OTP ${code} إلى ${phone} عبر الخدمة`,
+        response.data,
+      );
+    } catch (error) {
+      console.error(
+        'خطأ في إرسال OTP عبر الخدمة:',
+        error.message,
+        error.response?.data,
+      );
+      throw new BadRequestException('فشل إرسال رمز OTP');
+    }
   }
 }

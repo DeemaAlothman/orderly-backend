@@ -1,8 +1,13 @@
 // src/user/dto/update-profile.dto.ts
-import { IsOptional, IsString, MinLength, IsNotEmpty } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  MinLength,
+  IsNotEmpty,
+  IsDate,
+} from 'class-validator';
 
 export class UpdateProfileDto {
-  
   @IsOptional()
   @IsString()
   name?: string;
@@ -15,7 +20,6 @@ export class UpdateProfileDto {
   @IsString()
   email?: string;
 
- 
   @IsOptional()
   @IsString()
   currentPassword?: string;
@@ -28,4 +32,8 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   confirmNewPassword?: string;
+
+  @IsOptional()
+  @IsDate()
+  lastLogin?: Date;
 }

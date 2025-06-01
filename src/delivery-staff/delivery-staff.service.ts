@@ -1,10 +1,14 @@
 // src/delivery-staff/delivery-staff.service.ts
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDeliveryStaffDto } from './dto/create-delivery-staff.dto';
 import { UpdateDeliveryStaffDto } from './dto/update-delivery-staff.dto';
 import { AuthService } from '../auth/auth.service';
-import { UserType } from '@prisma/client'; // Import Prisma UserType enum
+import { UserType } from '@prisma/client';
 
 @Injectable()
 export class DeliveryStaffService {
@@ -14,29 +18,24 @@ export class DeliveryStaffService {
   ) {}
 
   async create(data: CreateDeliveryStaffDto) {
-    // Construct CreateUserDto with proper UserType enum
     const createUserDto = {
       name: data.name,
       phone: data.phone,
       password: data.password,
       address: data.address,
-      type: UserType.DELIVERY_STAFF, // Use enum value
+      type: UserType.DELIVERY_STAFF,
     };
 
-    // Call AuthService.register to create user and send OTP
     const authResult = await this.authService.register(createUserDto);
 
-    // Retrieve the user to get userId
     const user = await this.prisma.user.findUnique({
       where: { phone: data.phone },
     });
 
-    // Handle case where user is not found
     if (!user) {
       throw new BadRequestException('فشل إنشاء المستخدم');
     }
 
-    // Create DeliveryStaff record
     const deliveryStaff = await this.prisma.deliveryStaff.create({
       data: {
         userId: user.id,
@@ -70,6 +69,21 @@ export class DeliveryStaffService {
     return this.prisma.deliveryStaff.findUnique({
       where: { id },
       include: { user: true },
+    });
+  }
+
+  async updateLocation(id: string, lat: number, long: number) {
+    const deliveryStaff = await this.prisma.deliveryStaff.findUnique({
+      where: { id },
+    });
+
+    if (!deliveryStaff) {
+      throw new NotFoundException('موظف التوصيل غير موجود');
+    }
+
+    return this.prisma.deliveryStaff.update({
+      where: { id },
+      data: { lat, long },
     });
   }
 }
