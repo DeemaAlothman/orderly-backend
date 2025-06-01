@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // ستضع الاتصال بقاعدة البيانات في ملف .env
+}
+
+enum UserType {
+  ADMIN
+  CUSTOMER
+  DELIVERY_STAFF
+}
+enum OrderStatus {
+  PENDING
+  ASSIGNED
+  DELIVERED
+  CANCELLED
+}
+
+
+model User {
+  id         String         @id @default(uuid())
+  name       String
+  phone      String         @unique
+  password   String
+  address    String?
+  type       UserType
+  is_active  Boolean        @default(false) // تغيير القيمة الافتراضية إلى false
+  created_at DateTime       @default(now())
+  updated_at DateTime       @updatedAt
+  lastLogin  DateTime?
+  deliveryStaff DeliveryStaff?
+  orders        Order[]
+  ratings       OrderRating[]
+  notifications Notification[]
+  addresses     UserAddress[]
+  deviceTokens  DeviceToken[]
+  is_verified   Boolean        @default(false)
+  updatedConfigs PricingConfig[] @relation("AdminUpdatedConfigs")
+}
+
+model DeliveryStaff {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  vehicle_type String
+  availability_status String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  is_active    Boolean  @default(true)
+  lat          Float    @default(0.0)
+  long         Float    @default(0.0)
+  user         User     @relation(fields: [userId], references: [id])
+  orders       Order[]
+}
+
+model Order {
+  id                  String         @id @default(uuid())
+  customerId          String
+  staffId             String?
+  delivery_type_id    String
+ order_status     OrderStatus
+  base_amount         Decimal
+  delivery_fee        Decimal
+  custom_items_amount Decimal
+  total_amount        Decimal
+  customer_notes      String?
+  admin_notes         String?
+  order_date          DateTime
+  confirmed_at        DateTime?
+  picked_up_at        DateTime?
+  delivered_at        DateTime?
+  created_at          DateTime       @default(now())
+  updated_at          DateTime       @updatedAt
+  addressId           String?
+
+  customer            User           @relation(fields: [customerId], references: [id])
+  staff               DeliveryStaff? @relation(fields: [staffId], references: [id])
+  address             UserAddress?   @relation(fields: [addressId], references: [id])
+  items               OrderItem[]
+  rating              OrderRating?
+  deliveryType        DeliveryType   @relation(fields: [delivery_type_id], references: [id])
+}
+
+model OrderItem {
+  id                String   @id @default(uuid())
+  orderId           String
+  productId         String?
+  quantity          Int
+  unit_price        Decimal
+  total_price       Decimal
+  custom_notes      String?
+  is_custom_item    Boolean  @default(false)
+  custom_item_name  String?
+  created_at        DateTime @default(now())
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product? @relation(fields: [productId], references: [id])
+}
+
+model Product {
+  id           String   @id @default(uuid())
+  category_id  String
+  name_ar      String
+  name_en      String
+  description  String?
+  base_price   Decimal
+  image_url    String?
+  is_available Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  category Category @relation(fields: [category_id], references: [id])
+  orderItems OrderItem[]
+}
+
+model Category {
+  id           String   @id @default(uuid())
+  name_ar      String
+  name_en      String
+  description  String?
+  icon_url     String?
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  products     Product[]
+}
+
+model DeliveryType {
+  id           String   @id @default(uuid())
+  type_name    String
+  description  String?
+  delivery_fee Decimal
+  is_active    Boolean @default(true)
+
+  orders       Order[]
+}
+
+model OrderRating {
+  id           String   @id @default(uuid())
+  orderId      String   @unique
+  customerId   String
+  rating_score Int
+  review_text  String?
+  created_at   DateTime @default(now())
+
+  order    Order @relation(fields: [orderId], references: [id])
+  customer User  @relation(fields: [customerId], references: [id])
+}
+
+model PricingConfig {
+  id           String   @id @default(uuid())
+  config_key   String   @unique
+  config_value Decimal
+  description  String?
+  updated_at   DateTime @updatedAt
+  updated_by   String
+
+  admin        User @relation("AdminUpdatedConfigs", fields: [updated_by], references: [id])
+}
+
+model Notification {
+  id                String   @id @default(uuid())
+  userId            String
+  title             String
+  message           String
+  notification_type String
+  is_read           Boolean  @default(false)
+  created_at        DateTime @default(now())
+
+  user              User @relation(fields: [userId], references: [id])
+}
+
+model UserAddress {
+  id            String   @id @default(uuid())
+  userId        String
+  long          Float
+  lat           Float
+  location_name String
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id])
+  orders        Order[]
+}
+
+model OtpVerification {
+  id         String   @id @default(uuid())
+  phone      String
+  code       String
+  expires_at DateTime
+  verified   Boolean  @default(false)
+  created_at DateTime @default(now())
+}
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id])
+}
