@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderRatingDto } from './dto/create-order-rating.dto';
 import { OrderStatus } from '@prisma/client';
 @Injectable()

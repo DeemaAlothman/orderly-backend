@@ -1,30 +1,25 @@
-// src/user/dto/create-user.dto.ts
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsPhoneNumber,
-  IsString,
-} from 'class-validator';
-import { UserType } from '../../common/enums/user-type.enum';
+// src/auth/dto/create-user.dto.ts
+import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
+import { UserType } from '@prisma/client';
 
 export class CreateUserDto {
-  @IsNotEmpty()
   @IsString()
-  name: string;
-
   @IsNotEmpty()
-  @IsPhoneNumber('SY') // يمكن تعديل الدولة حسب الحاجة
   phone: string;
 
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsString()
+  @IsNotEmpty()
   password: string;
 
   @IsOptional()
   @IsString()
   address?: string;
 
+  @IsOptional()
   @IsEnum(UserType)
-  type: UserType;
+  type?: UserType; // Use Prisma enum
 }

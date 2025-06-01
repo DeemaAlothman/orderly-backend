@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { UpdatePricingConfigDto } from './dto/update-pricing-config.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 

@@ -1,16 +1,46 @@
 // src/delivery-staff/delivery-staff.controller.ts
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  BadRequestException,
+} from '@nestjs/common';
 import { DeliveryStaffService } from './delivery-staff.service';
 import { CreateDeliveryStaffDto } from './dto/create-delivery-staff.dto';
 import { UpdateDeliveryStaffDto } from './dto/update-delivery-staff.dto';
+import { AuthService } from '../auth/auth.service';
+import { UserType } from '@prisma/client'; // Import Prisma UserType enum
 
 @Controller('delivery-staff')
 export class DeliveryStaffController {
-  constructor(private readonly deliveryStaffService: DeliveryStaffService) {}
+  constructor(
+    private readonly deliveryStaffService: DeliveryStaffService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Post('register')
   async register(@Body() dto: CreateDeliveryStaffDto) {
     return this.deliveryStaffService.create(dto);
+  }
+
+  @Post('verify-otp')
+  async verifyOtp(
+    @Body('phone') phone: string,
+    @Body('otp') otp: string,
+    @Body() dto: Partial<CreateDeliveryStaffDto>,
+  ) {
+    if (!phone || !otp) {
+      throw new BadRequestException('رقم الهاتف ورمز OTP مطلوبان');
+    }
+    return this.authService.verifyOtpAndRegister(phone, otp, {
+      name: dto.name,
+      password: dto.password,
+      address: dto.address,
+      type: UserType.DELIVERY_STAFF, // Use enum value
+    });
   }
 
   @Put(':id')

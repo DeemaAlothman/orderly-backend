@@ -1,28 +1,42 @@
 // src/delivery-staff/delivery-staff.service.ts
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDeliveryStaffDto } from './dto/create-delivery-staff.dto';
 import { UpdateDeliveryStaffDto } from './dto/update-delivery-staff.dto';
-import * as bcrypt from 'bcrypt';
-import { UserType } from '../common/enums/user-type.enum';
+import { AuthService } from '../auth/auth.service';
+import { UserType } from '@prisma/client'; // Import Prisma UserType enum
 
 @Injectable()
 export class DeliveryStaffService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private authService: AuthService,
+  ) {}
 
   async create(data: CreateDeliveryStaffDto) {
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    // Construct CreateUserDto with proper UserType enum
+    const createUserDto = {
+      name: data.name,
+      phone: data.phone,
+      password: data.password,
+      address: data.address,
+      type: UserType.DELIVERY_STAFF, // Use enum value
+    };
 
-    const user = await this.prisma.user.create({
-      data: {
-        name: data.name,
-        phone: data.phone,
-        password: hashedPassword,
-        address: data.address,
-        type: UserType.DELIVERY_STAFF,
-      },
+    // Call AuthService.register to create user and send OTP
+    const authResult = await this.authService.register(createUserDto);
+
+    // Retrieve the user to get userId
+    const user = await this.prisma.user.findUnique({
+      where: { phone: data.phone },
     });
 
+    // Handle case where user is not found
+    if (!user) {
+      throw new BadRequestException('فشل إنشاء المستخدم');
+    }
+
+    // Create DeliveryStaff record
     const deliveryStaff = await this.prisma.deliveryStaff.create({
       data: {
         userId: user.id,
@@ -31,7 +45,11 @@ export class DeliveryStaffService {
       },
     });
 
-    return { user, deliveryStaff };
+    return {
+      message: authResult.message,
+      otp: authResult.otp, // For testing only
+      deliveryStaff,
+    };
   }
 
   async update(id: string, data: UpdateDeliveryStaffDto) {
