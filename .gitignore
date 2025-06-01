@@ -12,8 +12,6 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Firebase Secret
-src/notification/firebase/service-account.json
 
 # Prisma
 /prisma/migrations/
